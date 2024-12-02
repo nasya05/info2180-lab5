@@ -18,16 +18,31 @@ try {
         $country = ($_GET['country']);
         
         $country = "%" . $country . "%";
-        $stmt = $conn->prepare("SELECT * FROM countries WHERE name LIKE :country");
-        $stmt->bindParam(':country', $country);
-        $stmt->execute();
-        
-        // Fetch the results
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (isset($_GET['lookup']) && $_GET['lookup'] === 'cities') {
+          
+              $stmt = $conn->prepare("SELECT cities.name AS city_name, cities.district, cities.population
+              FROM cities
+              JOIN countries ON cities.country_code = countries.code
+              WHERE countries.name LIKE :country
+              ");
+              $stmt->bindParam(':country', $country);
+              $stmt->execute();
+              $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }else{
+
+          $stmt = $conn->prepare("SELECT * FROM countries WHERE name LIKE :country");
+          $stmt->bindParam(':country', $country);
+          $stmt->execute();
+          $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        }
+
     } else {
+
         // If no country is specified, fetch all countries
-        $stmt = $conn->query("SELECT * FROM countries");
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+          $stmt = $conn->query("SELECT * FROM countries");
+          $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
     echo "Connection failed: " . $e->getMessage();
@@ -35,7 +50,27 @@ try {
 ?>
 
 <?php if (!empty($results)): ?>
-<table border="1">
+  <?php if (isset($_GET['lookup']) && $_GET['lookup'] === 'cities'): ?>
+    <table border="1">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>District</th>
+            <th>Population</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($results as $row): ?>
+        <tr>
+            <td><?= htmlspecialchars($row['city_name']); ?></td>
+            <td><?= htmlspecialchars($row['district']); ?></td>
+            <td><?= htmlspecialchars($row['population']); ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </tbody>
+    </table>
+  <?php else: ?>
+    <table border="1">
     <thead>
         <tr>
             <th>Country Name</th>
@@ -54,7 +89,10 @@ try {
         </tr>
         <?php endforeach; ?>
     </tbody>
-</table>
+    </table>
+    <?php endif; ?>
 <?php else: ?>
-<p>No results found.</p>
+    <p>No results found.</p>
 <?php endif; ?>
+
+
